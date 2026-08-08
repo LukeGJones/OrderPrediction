@@ -1,6 +1,7 @@
 import csv
 import glob
 import openmeteo_requests
+import datetime
 
 itemList = {}
 ExcludeList = ["", "Description", "1 Scoop Kellys", "2 scoop Kellys", "Bacon Fries 24g", "Biscuit packs", "Black Pudding & Mustard Fiddlers Crisps 40g", "Bombay Sapphire Single", "Bombay Sapphire Double", "Cheese & Onion Fiddlers Crisps 40g", "Chilli nuts", "Chilly Billy ", "Cornetto Classico", "Cornetto Mint", "Cornetto Strawberry", "Doggie Bags", "Dry Roasted Nuts", "Exhibit rose", "FAB", "Feast", "Fruit Pastille ", "Fruity Rainbow", "Gin 0% Single", "Gin 0% Double", "Gordons Lemon Single", "Gordons Gin Single", "Gordons Gin Double", "Gordons Orange Double", "Gordons Orange Single", "Gordons Peach Double ", "Gordons Peach Single", "Gordons Pink Double", "Gordons Pink Single", "Gordons Gin Single", "Greenalls Double", "Hendricks Single", "Hendricks Double", "Ice Cream", "Kleidal Chenin blanc", "Kit Kat 41.5g", "Lion Bar 50g", "Magnum Almond", "Magnum Classic", "Magnum Mint ", "Magnum White Chocolate", "Montguéret Tête Det", "Mini Cheddars 50g", "Place du village white", "Pork Scratchings", "Quavers", "Rountrees Black Current Push Up", "Rountrees Fruit Stack", "Rountrees Orange Push Up", "Salted Cashews 50g", "Salted Nuts 50g", "Scampi Fries 27g", "Sea Salt & Vinegar Fiddlers Crisps 40g", "Sea Salt Fiddlers Crisps 40g", "Smartie Push Up", "Smarties", "Solero", "Sweet Chilli Fiddlers Crisps 40g", "Tanqueray Single", "Tanqueray Double", "Twiglets 45g", "Twix 50g", "Watermelon Rowntrees"]
@@ -8,6 +9,7 @@ ExcludeList = ["", "Description", "1 Scoop Kellys", "2 scoop Kellys", "Bacon Fri
 path = "DailySalesFiles"
 files = glob.glob(path + "/*.csv")
 numfiles = 0
+fileDates = []
 
 for file in files:
     numfiles += 1
@@ -19,23 +21,25 @@ for file in files:
                     itemList.update({row[2]: int(itemList[row[2]]) + int(row[6])})
                 else:
                     itemList.update({row[2]: int(row[6])})
+    fileDates.append("2026-07-25")
+
 
 itemList = {k: v for k, v in sorted(itemList.items(), key=lambda item: item[0])}
 
-def getWeather():
+def getWeather(date):
     openmeteo = openmeteo_requests.Client()
     url = "https://api.open-meteo.com/v1/forecast"
     params = {
         "latitude": 51.576367630995136,
         "longitude": -0.7164894580753421,
         "daily": ["temperature_2m_max"],
-        "start_date": "2026-07-25",
-        "end_date": "2026-07-25"
+        "start_date": date,
+        "end_date": date
     }
     responses = openmeteo.weather_api(url, params=params)
     response = responses[0]
     daily = response.Daily()
-    print(daily.Variables(0).ValuesAsNumpy())
+    return daily.Variables(0).ValuesAsNumpy()
 
 def printDict(inDict):
     for x, y in inDict.items():
@@ -78,9 +82,19 @@ def SpecficDayMenu(itemList):
         SpecficDayMenu(itemList)
 
 def orderPrediction(itemList):
-    print("Order Prediction Menu")
-    day = input("Please enter day of the week\n:")
-    getWeather()
+    inpDate = input("Please enter date in form YYYY-MM-DD\n:")
+    #Caculates orders based on temperature
+    totalTemp = 0
+    for date in fileDates:
+        totalTemp += getWeather(date) #YYYY-MM-DD
+    #Total Orders
+    totalOrders = 0
+    for item, amount in itemList.items():
+        totalOrders += amount
+    x = totalOrders / totalTemp
+    ordersFromTemp = x * getWeather(inpDate)
+    print(ordersFromTemp)
+        
 
 def mainMenu(itemList):
     print("Welcome message")
@@ -93,3 +107,8 @@ def mainMenu(itemList):
         orderPrediction(itemList)
 
 mainMenu(itemList)
+
+
+#Average total orders / average maxtemp = x
+#x * max temp of day = expected orders from temp
+#expected orders from temp + average orders for day of week + ... / number of variables
