@@ -7,6 +7,7 @@ from sklearn.ensemble import RandomForestRegressor
 
 daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 ExcludeList = ["", "Description", "1 Scoop Kellys", "2 scoop Kellys", "Bacon Fries 24g", "Biscuit packs", "Black Pudding & Mustard Fiddlers Crisps 40g", "Bombay Sapphire Single", "Bombay Sapphire Double", "Cheese & Onion Fiddlers Crisps 40g", "Chilli nuts", "Chilly Billy ", "Cornetto Classico", "Cornetto Mint", "Cornetto Strawberry", "Doggie Bags", "Dry Roasted Nuts", "Exhibit rose", "FAB", "Feast", "Fruit Pastille ", "Fruity Rainbow", "Gin 0% Single", "Gin 0% Double", "Gordons Lemon Single", "Gordons Gin Single", "Gordons Gin Double", "Gordons Orange Double", "Gordons Orange Single", "Gordons Peach Double ", "Gordons Peach Single", "Gordons Pink Double", "Gordons Pink Single", "Gordons Gin Single", "Greenalls Double", "Hendricks Single", "Hendricks Double", "Ice Cream", "Kleidal Chenin blanc", "Kit Kat 41.5g", "Lion Bar 50g", "Magnum Almond", "Magnum Classic", "Magnum Mint ", "Magnum White Chocolate", "Montguéret Tête Det", "Mini Cheddars 50g", "Place du village white", "Pork Scratchings", "Quavers", "Rountrees Black Current Push Up", "Rountrees Fruit Stack", "Rountrees Orange Push Up", "Salted Cashews 50g", "Salted Nuts 50g", "Scampi Fries 27g", "Sea Salt & Vinegar Fiddlers Crisps 40g", "Sea Salt Fiddlers Crisps 40g", "Smartie Push Up", "Smarties", "Solero", "Sweet Chilli Fiddlers Crisps 40g", "Tanqueray Single", "Tanqueray Double", "Twiglets 45g", "Twix 50g", "Watermelon Rowntrees"]
+eventDates = []
 
 fileDates = []
 
@@ -86,7 +87,7 @@ def createDataSet():
             "DayofWeek": datetime.date(int(fileDate[:4]), int(fileDate[5:7]), int(fileDate[8:10])).weekday(),
             "Month": int(fileDate[5:7]),
             "IsWeekend": datetime.date(int(fileDate[:4]), int(fileDate[5:7]), int(fileDate[8:10])).weekday() >= 5,
-            "IsEventOn" : False
+            "IsEventOn" : True if fileDate in eventDates else False
         }
 
         dataset.append(row)
@@ -94,7 +95,7 @@ def createDataSet():
 
     return pd.DataFrame(dataset)
 
-def prediction(date):
+def prediction(date, eventOn):
     dataset = getDataSet()
 
     features = [
@@ -123,23 +124,11 @@ def prediction(date):
         "DayofWeek": datetime.date(int(date[:4]), int(date[5:7]), int(date[8:10])).weekday(),
         "Month": int(date[5:7]),
         "IsWeekend": datetime.date(int(date[:4]), int(date[5:7]), int(date[8:10])).weekday() >= 5,
-        "IsEventOn": False
+        "IsEventOn": eventOn
     }])
 
     prediction = model.predict(future)[0]
     return(prediction)
-
-def getDataSet():
-    try:
-        dataset = pd.read_csv("dataset.csv")
-    except:
-        dataset = createDataSet()
-        dataset.to_csv("dataset.csv", index=False)
-    return dataset
-
-def updateDataSet():
-    dataset = createDataSet()
-    dataset.to_csv("dataset.csv", index=False)
 
 def AllDaysMenu():
     itemList, numfiles, _ = readFiles(-1, True)
@@ -175,12 +164,34 @@ def SpecficDayMenu():
 
 def PredictionMenu():
     inpDate = input("Enter date in form YYYY-MM-DD\n:")
-    orderPrecition = round(float(prediction(inpDate)))
+    isEvent = input("Is there an event on?\nY/N:")
+    if isEvent[0].upper() == "Y":
+        eventOn = True
+    else:
+        eventOn = False
+    orderPrecition = round(float(prediction(inpDate, eventOn)))
     print(orderPrecition)
+
+def getDataSet():
+    try:
+        dataset = pd.read_csv("dataset.csv")
+    except:
+        dataset = createDataSet()
+        dataset.to_csv("dataset.csv", index=False)
+    return dataset
+
+def updateDataSet():
+    dataset = createDataSet()
+    dataset.to_csv("dataset.csv", index=False)
+
+def addEventDate():
+    eventDate = input("Enter date in form YYYY-MM-DD\n:")
+    eventDates.append(eventDate)
+    updateDataSet()
 
 def mainMenu():
     print("Welcome message")
-    inp = input("1.All Days Menu\n2.Specific Day Menu\n3.Order Prediction\n4.Display Dataset\n5.Update Dataset\n6.Add Event on Date\n:")
+    inp = input("1.All Days Menu\n2.Specific Day Menu\n3.Order Prediction\n4.Display Dataset\n5.Update Dataset\n6.Add Event on Date\n7.Quit\n:")
     if inp == "1":
         AllDaysMenu()
     elif inp == "2":
@@ -191,7 +202,10 @@ def mainMenu():
         print(getDataSet())
     elif inp == "5":
         updateDataSet()
-    elif inp == "5":
-        updateDataSet()
+    elif inp == "6":
+        addEventDate()
+    elif inp == "7":
+        return False
 
-mainMenu()
+while mainMenu():
+    mainMenu()
