@@ -7,9 +7,15 @@ from sklearn.ensemble import RandomForestRegressor
 
 daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 ExcludeList = ["", "Description", "1 Scoop Kellys", "2 scoop Kellys", "Bacon Fries 24g", "Biscuit packs", "Black Pudding & Mustard Fiddlers Crisps 40g", "Bombay Sapphire Single", "Bombay Sapphire Double", "Cheese & Onion Fiddlers Crisps 40g", "Chilli nuts", "Chilly Billy ", "Cornetto Classico", "Cornetto Mint", "Cornetto Strawberry", "Doggie Bags", "Dry Roasted Nuts", "Exhibit rose", "FAB", "Feast", "Fruit Pastille ", "Fruity Rainbow", "Gin 0% Single", "Gin 0% Double", "Gordons Lemon Single", "Gordons Gin Single", "Gordons Gin Double", "Gordons Orange Double", "Gordons Orange Single", "Gordons Peach Double ", "Gordons Peach Single", "Gordons Pink Double", "Gordons Pink Single", "Gordons Gin Single", "Greenalls Double", "Hendricks Single", "Hendricks Double", "Ice Cream", "Kleidal Chenin blanc", "Kit Kat 41.5g", "Lion Bar 50g", "Magnum Almond", "Magnum Classic", "Magnum Mint ", "Magnum White Chocolate", "Montguéret Tête Det", "Mini Cheddars 50g", "Place du village white", "Pork Scratchings", "Quavers", "Rountrees Black Current Push Up", "Rountrees Fruit Stack", "Rountrees Orange Push Up", "Salted Cashews 50g", "Salted Nuts 50g", "Scampi Fries 27g", "Sea Salt & Vinegar Fiddlers Crisps 40g", "Sea Salt Fiddlers Crisps 40g", "Smartie Push Up", "Smarties", "Solero", "Sweet Chilli Fiddlers Crisps 40g", "Tanqueray Single", "Tanqueray Double", "Twiglets 45g", "Twix 50g", "Watermelon Rowntrees"]
-eventDates = []
 
-fileDates = []
+def loadEventDates():
+    try:
+        with open("eventDates.csv", "r") as file:
+            return [line.strip() for line in file if line.strip()]
+    except FileNotFoundError:
+        return []
+
+eventDates = loadEventDates()
 
 def readFiles(dayOfWeek, isTotalAverage):
     itemList = {}
@@ -19,8 +25,8 @@ def readFiles(dayOfWeek, isTotalAverage):
     for file in files:
         totalnumfiles += 1
         fileDate = file[16:26]
-        fileDates.append(fileDate)
-        if(datetime.date(int(fileDate[:4]), int(fileDate[5:7]), int(fileDate[8:10])).weekday() == dayOfWeek or isTotalAverage == True):
+        date = datetime.date.fromisoformat(fileDate)
+        if(date.weekday() == dayOfWeek or isTotalAverage == True):
             dayNumFiles += 1
             with open(file, newline="") as csvfile:
                 reader = csv.reader(csvfile)
@@ -44,9 +50,9 @@ def AverageOrders(inDict, numfiles):
         averagesList[item] = round((amount / numfiles), 2)
     return averagesList
 
-def getWeather(date, forcast):
+def getWeather(date, forecast):
     openmeteo = openmeteo_requests.Client()
-    if forcast == True:
+    if forecast == True:
         url = "https://api.open-meteo.com/v1/forecast"
     else:
         url = "https://archive-api.open-meteo.com/v1/archive"
@@ -58,10 +64,14 @@ def getWeather(date, forcast):
         "start_date": date,
         "end_date": date
     }
-    responses = openmeteo.weather_api(url, params=params)
-    response = responses[0]
-    daily = response.Daily()
-    return { "temp_max": daily.Variables(0).ValuesAsNumpy()[0], "rain": daily.Variables(1).ValuesAsNumpy()[0] }
+    try:
+        responses = openmeteo.weather_api(url, params=params)
+        response = responses[0]
+        daily = response.Daily()
+        return { "temp_max": daily.Variables(0).ValuesAsNumpy()[0], "rain": daily.Variables(1).ValuesAsNumpy()[0] }
+    except Exception as e:
+        print("Could not get data for", date)
+        return { "temp_max": 0, "rain": 0 }
 
 def createDataSet():
     dataset = []
@@ -78,15 +88,15 @@ def createDataSet():
                         totalOrders += int(row[6])
 
         weather = getWeather(fileDate, False)
+        date = datetime.date.fromisoformat(fileDate)
 
         row = {
             "Date": fileDate,
             "Orders": totalOrders,
             "MaxTemp": round(float(weather["temp_max"]), 1),
             "Rain": weather["rain"],
-            "DayofWeek": datetime.date(int(fileDate[:4]), int(fileDate[5:7]), int(fileDate[8:10])).weekday(),
-            "Month": int(fileDate[5:7]),
-            "IsWeekend": datetime.date(int(fileDate[:4]), int(fileDate[5:7]), int(fileDate[8:10])).weekday() >= 5,
+            "DayofWeek": date.weekday(),
+            "Month": date.month,
             "IsEventOn" : True if fileDate in eventDates else False
         }
 
@@ -97,13 +107,13 @@ def createDataSet():
 
 def prediction(date, eventOn):
     dataset = getDataSet()
+    date = datetime.date.fromisoformat(date)
 
     features = [
         "MaxTemp",
         "Rain",
         "DayofWeek",
         "Month",
-        "IsWeekend",
         "IsEventOn"
     ]
 
@@ -121,9 +131,8 @@ def prediction(date, eventOn):
     future = pd.DataFrame([{
         "MaxTemp": round(float(weather["temp_max"]), 1),
         "Rain": weather["rain"],
-        "DayofWeek": datetime.date(int(date[:4]), int(date[5:7]), int(date[8:10])).weekday(),
-        "Month": int(date[5:7]),
-        "IsWeekend": datetime.date(int(date[:4]), int(date[5:7]), int(date[8:10])).weekday() >= 5,
+        "DayofWeek": date.weekday(),
+        "Month": date.month,
         "IsEventOn": eventOn
     }])
 
@@ -145,7 +154,7 @@ def AllDaysMenu():
         print("Command not valid")
         AllDaysMenu()
 
-def SpecficDayMenu():
+def SpecificDayMenu():
     print("Specific Day Menu")
     specDay = input("Enter a specific day of the week\n:")
     specDayNum = daysOfWeek.index(specDay[0].upper() + specDay[1:].lower())
@@ -160,7 +169,7 @@ def SpecficDayMenu():
         mainMenu() 
     else:
         print("Command not valid")
-        SpecficDayMenu()
+        SpecificDayMenu()
 
 def PredictionMenu():
     inpDate = input("Enter date in form YYYY-MM-DD\n:")
@@ -169,13 +178,13 @@ def PredictionMenu():
         eventOn = True
     else:
         eventOn = False
-    orderPrecition = round(float(prediction(inpDate, eventOn)))
-    print(orderPrecition)
+    orderPrediction = round(float(prediction(inpDate, eventOn)))
+    print(orderPrediction)
 
 def getDataSet():
     try:
         dataset = pd.read_csv("dataset.csv")
-    except:
+    except FileNotFoundError:
         dataset = createDataSet()
         dataset.to_csv("dataset.csv", index=False)
     return dataset
@@ -187,6 +196,8 @@ def updateDataSet():
 def addEventDate():
     eventDate = input("Enter date in form YYYY-MM-DD\n:")
     eventDates.append(eventDate)
+    with open("eventDates.csv", "a") as file:
+        file.write(eventDate + "\n")
     updateDataSet()
 
 def mainMenu():
@@ -195,7 +206,7 @@ def mainMenu():
     if inp == "1":
         AllDaysMenu()
     elif inp == "2":
-        SpecficDayMenu()
+        SpecificDayMenu()
     elif inp == "3":
         PredictionMenu()
     elif inp == "4":
@@ -207,5 +218,6 @@ def mainMenu():
     elif inp == "7":
         return False
 
-while mainMenu():
-    mainMenu()
+while True:
+    if mainMenu() == False:
+        break
