@@ -69,7 +69,7 @@ def getWeather(date, forecast):
         response = responses[0]
         daily = response.Daily()
         return { "temp_max": daily.Variables(0).ValuesAsNumpy()[0], "rain": daily.Variables(1).ValuesAsNumpy()[0] }
-    except Exception as e:
+    except Exception:
         print("Could not get data for", date)
         return { "temp_max": 0, "rain": 0 }
 
@@ -107,7 +107,6 @@ def createDataSet():
 
 def prediction(date, eventOn):
     dataset = getDataSet()
-    date = datetime.date.fromisoformat(date)
 
     features = [
         "MaxTemp",
@@ -141,38 +140,47 @@ def prediction(date, eventOn):
 
 def AllDaysMenu():
     itemList, numfiles, _ = readFiles(-1, True)
-    print("All Days Menu")
-    inp = input("1.All Days Average\n2.All Days Top Orders\n3.Return to Main Menu\n:")
-    if inp == "1":
-        printDict(AverageOrders(itemList, numfiles))
-    elif inp == "2":
-        itemList = {k: v for k, v in sorted(itemList.items(), key=lambda item: item[1], reverse=True)}
-        printDict(itemList)
-    elif inp == "3":
-        mainMenu() 
-    else:
-        print("Command not valid")
-        AllDaysMenu()
+    while True:
+        print("All Days Menu")
+        inp = input("1.All Days Average\n2.All Days Top Orders\n3.Return to Main Menu\n:")
+        if inp == "1":
+            printDict(AverageOrders(itemList, numfiles))
+        elif inp == "2":
+            itemList = {k: v for k, v in sorted(itemList.items(), key=lambda item: item[1], reverse=True)}
+            printDict(itemList)
+        elif inp == "3":
+            break
+        else:
+            print("Command not valid")
 
 def SpecificDayMenu():
-    print("Specific Day Menu")
-    specDay = input("Enter a specific day of the week\n:")
-    specDayNum = daysOfWeek.index(specDay[0].upper() + specDay[1:].lower())
-    itemList, _, dayNumFiles = readFiles(specDayNum, False)
-    inp = input("1.Specific Day Average\n2.Specific Day Top Orders\n3.Return to Main Menu\n:")
-    if inp == "1":
-        printDict(AverageOrders(itemList, dayNumFiles))
-    elif inp == "2":
-        itemList = {k: v for k, v in sorted(itemList.items(), key=lambda item: item[1], reverse=True)}
-        printDict(itemList)
-    elif inp == "3":
-        mainMenu() 
-    else:
-        print("Command not valid")
-        SpecificDayMenu()
+    while True:
+        print("Specific Day Menu")
+        while True:
+            specDay = input("Enter a specific day of the week\n:")
+            if(specDay[0].upper() + specDay[1:].lower() in daysOfWeek):
+                break
+        specDayNum = daysOfWeek.index(specDay[0].upper() + specDay[1:].lower())
+        itemList, _, dayNumFiles = readFiles(specDayNum, False)
+        inp = input("1.Specific Day Average\n2.Specific Day Top Orders\n3.Return to Main Menu\n:")
+        if inp == "1":
+            printDict(AverageOrders(itemList, dayNumFiles))
+        elif inp == "2":
+            itemList = {k: v for k, v in sorted(itemList.items(), key=lambda item: item[1], reverse=True)}
+            printDict(itemList)
+        elif inp == "3":
+            break
+        else:
+            print("Command not valid")
 
 def PredictionMenu():
-    inpDate = input("Enter date in form YYYY-MM-DD\n:")
+    while True:
+        inpDate = input("Enter date in form YYYY-MM-DD\n:")
+        try:
+            inpDate = datetime.date.fromisoformat(inpDate)
+            break
+        except ValueError:
+            print("Invalid date")
     isEvent = input("Is there an event on?\nY/N:")
     if isEvent[0].upper() == "Y":
         eventOn = True
@@ -194,29 +202,38 @@ def updateDataSet():
     dataset.to_csv("dataset.csv", index=False)
 
 def addEventDate():
-    eventDate = input("Enter date in form YYYY-MM-DD\n:")
+    while True:
+        eventDate = input("Enter date in form YYYY-MM-DD\n:")
+        try:
+            eventDate = datetime.date.fromisoformat(eventDate)
+            break
+        except ValueError:
+            print("Invalid date")
     eventDates.append(eventDate)
     with open("eventDates.csv", "a") as file:
-        file.write(eventDate + "\n")
+        file.write(datetime.date.isoformat(eventDate) + "\n")
     updateDataSet()
 
 def mainMenu():
     print("Welcome message")
-    inp = input("1.All Days Menu\n2.Specific Day Menu\n3.Order Prediction\n4.Display Dataset\n5.Update Dataset\n6.Add Event on Date\n7.Quit\n:")
-    if inp == "1":
-        AllDaysMenu()
-    elif inp == "2":
-        SpecificDayMenu()
-    elif inp == "3":
-        PredictionMenu()
-    elif inp == "4":
-        print(getDataSet())
-    elif inp == "5":
-        updateDataSet()
-    elif inp == "6":
-        addEventDate()
-    elif inp == "7":
-        return False
+    while True:
+        inp = input("1.All Days Menu\n2.Specific Day Menu\n3.Order Prediction\n4.Display Dataset\n5.Update Dataset\n6.Add Event on Date\n7.Quit\n:")
+        if inp == "1":
+            AllDaysMenu()
+        elif inp == "2":
+            SpecificDayMenu()
+        elif inp == "3":
+            PredictionMenu()
+        elif inp == "4":
+            print(getDataSet())
+        elif inp == "5":
+            updateDataSet()
+        elif inp == "6":
+            addEventDate()
+        elif inp == "7":
+            return False
+        else:
+            print("Command not valid")
 
 while True:
     if mainMenu() == False:
