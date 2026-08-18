@@ -165,9 +165,11 @@ def SpecificDayMenu():
         inp = input("1.Specific Day Average\n2.Specific Day Top Orders\n3.Return to Main Menu\n:")
         if inp == "1":
             printDict(AverageOrders(itemList, dayNumFiles))
+            break
         elif inp == "2":
             itemList = {k: v for k, v in sorted(itemList.items(), key=lambda item: item[1], reverse=True)}
             printDict(itemList)
+            break
         elif inp == "3":
             break
         else:
