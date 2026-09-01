@@ -28,7 +28,7 @@ The model can then be used to predict the number of orders on a given date after
 * Handles failed API requests
 
 ### Order Prediction 
-* Uses Random Forest Regression model
+* Uses a Random Forest Regression model
 * Predicts order count for a given data  
 * Uses day of week, month, max temperature, rainfall and event days in calculation
 
