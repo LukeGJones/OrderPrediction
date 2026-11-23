@@ -3,9 +3,9 @@ A python application that analyses past order counts, weather, day of week and s
 The application also provides tools for analysing average orders and top orders for all time and specific days of the week.
 
 <p align="centre">
-<img src="ExampleScreenshots/OrderPrediction.png" height=300px>
-<img src="ExampleScreenshots/AllDaysAverage.png" height=300px>
-<img src="ExampleScreenshots/SpecifcDayTopOrders.png" height=300px>
+<img src="ExampleScreenshots/OrderPrediction.png" width=33%>
+<img src="ExampleScreenshots/AllDaysAverage.png" width=27%>
+<img src="ExampleScreenshots/SpecifcDayTopOrders.png" width=34%>
 </p>
 
 ## About  
@@ -28,14 +28,18 @@ The model can then be used to predict the number of orders on a given date after
 * Handles failed API requests
 
 ### Order Prediction 
-* Uses Random Forest Regression model
+* Uses a Random Forest Regression model
 * Predicts order count for a given data  
 * Uses day of week, month, max temperature, rainfall and event days in calculation
-* 
 
-## Architecture 
+### Event Mangement 
+* Add dates with special events through the application
+* Stores dates in CSV file to automatically include given dates in predictions
 
 ## Build
 ```  
-
+git clone https://github.com/LukeGJones/OrderPrediction.git
+cd OrderPrediction
+pip install pandas scikit-learn openmeteo-requests
+python main.py
 ```
