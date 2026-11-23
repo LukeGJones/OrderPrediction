@@ -231,6 +231,7 @@ def addEventDate():
     updateDataSet()
 
 #A text based main menu that allows the user to navigate to the different menus and functions of the program.
+def mainMenu():
     print("Welcome message")
     while True:
         inp = input("1.All Days Menu\n2.Specific Day Menu\n3.Order Prediction\n4.Display Dataset\n5.Update Dataset\n6.Add Event on Date\n7.Quit\n:")
